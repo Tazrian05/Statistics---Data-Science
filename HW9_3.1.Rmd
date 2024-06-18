@@ -1,0 +1,93 @@
+---
+title: "HW9_2"
+output: html_document
+date: "2024-03-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rmystery <- function(n){
+  x = runif(n)
+  y = runif(n, min=0, max = 1/x)
+  data.frame(x=x,y=y)
+}
+plot(rmystery(100))
+```
+
+
+```{r}
+experiment_m<-function(){
+  data<-rmystery(100)
+  model<-lm(y~x,data=data)
+  return(coefficients(model[2]))
+  
+num_experiments <- 1000
+slope_results <- replicate(num_experiments, experiment_m())
+
+# Plot a histogram of the slope coefficient
+hist(slope_results, breaks=30, main="Sampling Distribution of Slope Coefficient",
+     xlab="Slope Coefficient", ylab="Frequency")
+}
+```
+
+```{r}
+# Define the mystery distribution function
+rmystery <- function(n){
+  x <- runif(n)
+  y <- runif(n, min=0, max = 1/x)
+  data.frame(x=x, y=y)
+}
+
+# Create the experiment function
+experiment_m <- function(){
+  data <- rmystery(100)
+  model <- lm(y ~ x, data=data)
+  return(coefficients(model)[2])  # Return the slope coefficient
+}
+
+# Run the experiment function multiple times
+num_experiments <- 1000
+slope_results <- replicate(num_experiments, experiment_m())
+
+# Plot a histogram of the slope coefficient
+hist(slope_results, breaks=30, main="Sampling Distribution of Slope Coefficient",
+     xlab="Slope Coefficient", ylab="Frequency")
+```
+
+
+```{r}
+renigma <- function(n){
+  x = runif(n)
+  y = runif(n, min=0, max = (1-x)^2)
+  data.frame(x=x,y=y)
+}
+plot(renigma(100))
+
+```
+
+```{r}
+
+renigma <- function(n){
+  x = runif(n)
+  y = runif(n, min=0, max = (1-x)^2)
+  data.frame(x=x,y=y)
+}
+experiment_e <- function(){
+  data <- renigma(100)
+  model <- lm(y ~ x, data=data)
+  return(coefficients(model)[2])  # Return the slope coefficient
+}
+
+# Run the experiment function multiple times
+num_experiments <- 1000
+slope_results <- replicate(num_experiments, experiment_e())
+
+# Plot a histogram of the slope coefficient
+hist(slope_results, breaks=30, main="Sampling Distribution of Slope Coefficient",
+     xlab="Slope Coefficient", ylab="Frequency")
+
+```
+

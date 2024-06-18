@@ -1,0 +1,154 @@
+---
+title: "Lab2"
+output: pdf_document
+date: "2024-03-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(wooldridge)
+data('sleep75')
+
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+set.seed(30)
+exploration_sleep_indices <- sample(1:nrow(sleep75), nrow(sleep75)*.3)
+exploration_sleep <- sleep75[exploration_sleep_indices, ]
+confirmation_sleep <- sleep75[-exploration_sleep_indices, ]
+
+```
+
+```{r}
+ggplot(data = exploration_sleep, aes(x = age, y = sleep)) +
+  geom_point() +
+  labs(title = "Distribution of Sleep Across Ages (23 - 65)",
+       x = "Age",
+       y = "Minutes of Sleep Per Week") + 
+  stat_smooth(method = lm, col = "red") 
+
+base_model <- lm(sleep ~ age, data = exploration_sleep)
+summary(base_model)
+
+```
+
+```{r}
+
+# Transform hrwage variable to log scale
+exploration_sleep$log_hrwage <- log(exploration_sleep$hrwage)
+
+# Fit linear regression model with log-transformed hrwage
+log_model <- lm(sleep ~ log_hrwage, data = exploration_sleep)
+
+
+#base_model <- lm(sleep ~ hrwage, data = exploration_sleep)
+summary(log_model)
+
+ggplot(data = exploration_sleep, aes(x = hrwage, y = sleep)) +
+  geom_point() +
+  labs(title = "Distribution of Sleep Across Ages (23 - 65)",
+       x = "Hourly Wage",
+       y = "Minutes of Sleep Per Week") + 
+  stat_smooth(method = lm, col = "red") 
+
+```
+```{r}
+lm_model <- lm(sleep ~ age + educ + lhrwage + male + marr, data = exploration_sleep)
+summary(lm_model)
+
+```
+```{r}
+
+lm2_model <- lm(sleep ~age + educ + lhrwage + male + marr + black + clerical + construc + gdhlth + inlf + smsa + lothinc + prot + selfe + slpnaps + south + spsepay + spwrk75 + totwrk + union + worknrm + workscnd + exper + yngkid + gdhlth+ yrsmarr + hrwage + agesq, data = exploration_sleep)
+
+summary(lm2_model)
+```
+
+```{r}
+
+lm3_model <- lm(sleep~ age + educ + lhrwage + male + marr + age*male, data=exploration_sleep)
+summary(lm3_model)
+```
+
+```{r}
+
+lm4_model <- lm(sleep~ age + educ + lhrwage + male + marr + age*educ, data=exploration_sleep)
+summary(lm4_model)
+
+```
+
+```{r}
+lm4_model <- lm(sleep~ age+ agesq+ educ + lhrwage + male + marr + age*educ, data=exploration_sleep)
+summary(lm4_model)
+
+```
+
+
+
+```{r}
+lm5_model<-lm(sleep~ age + agesq, data=exploration_sleep)
+summary(lm5_model)
+
+```
+
+```{r}
+
+#  Log-Linear Regression #null values present
+lm6_model <- lm(sleep ~ log(hrwage) + log(earns74) + log(spsepay), data = exploration_sleep)
+Summary(lm6_model)
+```
+
+```{r}
+lm7_model <- lm(sleep ~ age +age*construc, data = exploration_sleep)
+summary(lm7_model)
+```
+
+
+```{r}
+
+lm8_model <- lm(sleep ~ marr +marr*construc, data = exploration_sleep)
+summary(lm8_model)
+```
+
+```{r}
+#simple linear models with predictor that were found significant in previous full linear model
+lm_simple_model1 <- lm(sleep ~ age, data = exploration_sleep)
+summary(lm_simple_model1)
+
+lm_simple_model2 <- lm(sleep ~ marr, data = exploration_sleep)
+summary(lm_simple_model2)
+
+lm_simple_model3 <- lm(sleep ~ agesq, data = exploration_sleep)
+summary(lm_simple_model3)
+
+lm_simple_model4 <- lm(sleep ~ slpnaps, data = exploration_sleep)
+summary(lm_simple_model4)
+
+lm_simple_model5 <- lm(sleep ~ construc, data = exploration_sleep)
+summary(lm_simple_model5)
+
+```
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

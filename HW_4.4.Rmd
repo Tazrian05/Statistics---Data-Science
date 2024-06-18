@@ -1,0 +1,40 @@
+---
+title: "Hw9_4.5"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-03-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages and set options, include=FALSE}
+library(tidyverse) 
+library(magrittr)
+library(knitr)
+library(patchwork)
+library(moments)
+library(fec16)
+
+theme_set(theme_bw())
+
+options(tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo=FALSE, message=FALSE)
+```
+
+```{r, echo=TRUE}
+#Creating the new variable candidate_party
+df <- df %>%
+  mutate(candidate_party = case_when(
+    party == "DEM" ~ "Democrat",
+    party == "REP" ~ "Republican",
+    TRUE ~ "Other Party"
+  ))
+
+model <- lm(general_votes ~ ttl_disb + candidate_party, data = new_dataframe)
+summary(lm_model)
+
+```
+

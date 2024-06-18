@@ -1,0 +1,233 @@
+---
+title: "HW9_3"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+date: "2024-03-12"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages and set options, include=FALSE}
+library(tidyverse) 
+library(magrittr)
+library(knitr)
+library(patchwork)
+library(moments)
+
+theme_set(theme_bw())
+
+options(tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo=FALSE, message=FALSE)
+```
+
+
+```{r}
+
+library(fec16)
+library(ggplot2)
+
+# Load the dataset
+data(results_house)
+
+# Create histogram for votes (general_percent)
+ggplot(results_house, aes(x = general_percent))+
+  geom_histogram(binwidth = 0.005, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Votes",
+       x = "Votes (General Percent)",
+       y = "Frequency")
+
+```
+
+```{r}
+library(fec16)
+library(ggplot2)
+
+# Load the dataset
+data(campaigns)
+
+# Create histogram for spending (ttl_disb)
+ggplot(campaigns, aes(x = ttl_disb)) +
+  geom_histogram(binwidth = 100000, fill = "salmon", color = "black") +
+  scale_x_continuous(labels = scales::dollar_format(prefix = "$"), limits = c(0, 10000000))+
+  scale_y_continuous(limits = c(0, 300))+
+  labs(title = "Distribution of Spending",
+       x = "Spending (Total Disbursement)",
+       y = "Frequency")
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+# Performing inner join
+df <- inner_join(results_house, campaigns, by = "cand_id")
+
+# View the new dataframe
+head(df)
+
+```
+
+
+```{r}
+# Calculate the number of rows in the new dataframe
+
+num_rows <- nrow(df)
+
+# Print the number of rows
+
+print(num_rows)
+
+```
+
+```{r}
+num_column<-ncol(df)
+print(num_column)
+
+```
+
+```{r, echo=TRUE}
+library(tidyverse) 
+library(magrittr)
+library(knitr)
+library(patchwork)
+library(moments)
+library(dplyr)
+library(ggplot2)
+# Creating the new variable candidate_party
+df <- df %>%
+  mutate(candidate_party = case_when(
+    party == "DEM" ~ "Democrat",
+    party == "REP" ~ "Republican",
+    TRUE ~ "Other Party"
+  ))
+# Creating the scatter plot
+ggplot(df, aes(x = ttl_disb, y = general_votes, color = candidate_party)) +
+  geom_point() +
+  labs(title = "Scatter Plot of General Votes vs. Total Disbursement",
+       x = "Total Disbursement",
+       y = "General Votes",
+       color = "Candidate Party")
+```
+```{r}
+model <- lm(general_votes ~ ttl_disb + candidate_party, data = df)
+summary(model)
+
+```
+
+```{r,echo=TRUE}
+
+# Residuals vs. Fitted Values Plot
+plot(model, which = 1)
+```
+
+```{r}
+# Residual Plot
+plot(model, which = 3)
+```
+
+```{r, echo=TRUE}
+# Q-Q Plot
+qqnorm(residuals(model))
+qqline(residuals(model))
+
+```
+
+```{r, echo=TRUE}
+
+# Residuals vs. Predictor Plot
+plot(model, which = 2)
+
+```
+
+```{r}
+# R-squared value
+summary(model)$r.squared
+```
+
+
+```{r}
+library(car)
+crPlots(model)
+
+```
+
+```{r}
+library(fec16)
+library(stargazer)
+
+# Fit the linear regression model
+#model <- lm(general_votes ~ ttl_disb + candidate_party, data = results_house)
+
+model <- lm(general_votes ~ ttl_disb + candidate_party, data = df)
+
+# Print the regression summary using stargazer
+stargazer(model, title = "Linear Regression Model of General Votes",
+          covariate.labels = c("ttl_disb", "Candidate Party"),
+          dep.var.caption = "General Votes",
+          dep.var.labels.include = FALSE,
+          align = TRUE, type = "latex")
+
+```
+```{r}
+
+stargazer(model,type="text")
+
+```
+```{r,results='asis'}
+# Load stargazer package
+library(stargazer)
+
+# Fit the regression model
+
+model <- lm(general_votes ~ ttl_disb + candidate_party, data = df)
+
+# Create LaTeX table
+stargazer(model, type = "latex", 
+          title = "Linear Regression of General Votes on Total Disbursements and Candidate Party", 
+          covariate.labels = c("Total Disbursements", "Candidate Party"), 
+          dep.var.labels = "General Votes")
+
+```
+
+```{r}
+# Getting the coefficient and standard error for ttl_disb
+coef_ttl_disb <- coef(model)["ttl_disb"]
+SE_ttl_disb <- summary(model)$coefficients["ttl_disb", "Std. Error"]
+
+# Calculating the t-value
+t_value <- coef_ttl_disb / SE_ttl_disb
+
+# Getting the degrees of freedom
+df <- nrow(df) - length(coef(model))
+
+#p-value
+p_value <- 2 * pt(abs(t_value), df = df, lower.tail = FALSE)
+
+#results
+cat("t-value:", t_value, "\n")
+cat("p-value:", p_value, "\n")
+
+```
+
+
+```{r}
+# Fitting the reduced model without candidate_party
+#reduced_model <- lm(general_votes ~ ttl_disb, data =df)
+
+# Perform ANOVA to compare the full and reduced models
+#anova_results <- anova(reduced_model, model)
+
+# Extract the p-value from the ANOVA results
+#p_value <- anova_results$"Pr(>F)"[2]
+
+# Print the results
+#cat("p-value:", p_value, "\n")
+
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

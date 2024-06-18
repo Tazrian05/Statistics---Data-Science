@@ -1,0 +1,103 @@
+---
+title: "Lab2_Final_Analysis"
+output: pdf_document
+date: "2024-03-20"
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load dataset}
+library(ggplot2)
+library(dplyr)
+library(wooldridge)
+data('sleep75')
+```
+
+```{r, build exploration set}
+set.seed(30)
+exploration_sleep_indices <- sample(1:nrow(sleep75), nrow(sleep75)*.3)
+exploration_sleep <- sleep75[exploration_sleep_indices, ]
+confirmation_sleep <- sleep75[-exploration_sleep_indices, ]
+exploration_model <- lm(slpnaps ~ age + gdhlth + male, data=exploration_sleep)
+confirmation_model <- lm(slpnaps ~ age + gdhlth + male, data=confirmation_sleep)
+total_model <- lm(slpnaps ~ age + gdhlth + male, data=sleep75)
+```
+
+
+```{r}
+# Fit a linear model
+model_one <- lm(slpnaps ~ age, data = confirmation_sleep)
+summary(model_one)
+
+predicted <- predict(model_one)
+
+# Plot predicted vs actual
+plot(confirmation_sleep$slpnaps, predicted, main = "Predicted vs Actual", xlab = "Actual", ylab = "Predicted",ylim = c(3250,3700))
+abline(0, 1, col = "red")  # Add a line of equality for reference
+
+# Plot the scatter plot with ggplot
+scatter_plot <- ggplot(data = confirmation_sleep, aes(x = age, y = slpnaps)) +
+  geom_point() +
+  labs(title = "Distribution of Sleep By Age",
+       x = "Age",
+       y = "Minutes of Sleep Per Week") +
+  geom_smooth(formula = y ~ x, se = TRUE, col = "pink")
+
+# Residual plot
+residual_plot <- ggplot(data = data.frame(Predictor = model_one$fitted.values, Residuals = residuals(model_one)), aes(x = Predictor, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residual Plot",
+       x = "Fitted values",
+       y = "Residuals")
+residual_histogram <- hist(resid(model_one), main = "Histogram of Residuals", xlab = "Residuals", breaks = 14)
+
+# Display both plots
+scatter_plot
+residual_plot
+residual_histogram
+
+qqnorm(residuals(model_one), main = "QQ Plot for Linear Model Residuals")
+qqline(residuals(model_one), col = "red")
+```
+```{r}
+model_two <- lm(slpnaps ~ age + gdhlth, data = confirmation_sleep)
+summary(model_two)
+
+# Plot predicted vs actual
+plot(confirmation_sleep$slpnaps, predicted, main = "Predicted vs Actual", xlab = "Actual", ylab = "Predicted",ylim = c(3250,3700))
+abline(0, 1, col = "red")  # Add a line of equality for reference
+
+residual_histogram <- hist(resid(model_two), main = "Histogram of Residuals", xlab = "Residuals", breaks = 14)
+residual_histogram
+
+qqnorm(residuals(model_two), main = "QQ Plot for Linear Model Residuals")
+qqline(residuals(model_two), col = "red")
+```
+```{r}
+model_three <- lm(slpnaps ~ age + gdhlth + male, data = confirmation_sleep)
+summary(model_three)
+
+predicted <- predict(model_three)
+
+# Plot predicted vs actual
+plot(confirmation_sleep$slpnaps, predicted, main = "Predicted vs Actual", xlab = "Actual", ylab = "Predicted",ylim = c(3250,3700))
+abline(0, 1, col = "red")  # Add a line of equality for reference
+
+# Residual plot
+residual_plot <- ggplot(data = data.frame(Predictor = model_two$fitted.values, Residuals = residuals(model_three)), aes(x = Predictor, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residual Plot",
+       x = "Fitted values",
+       y = "Residuals")
+residual_histogram <- hist(resid(model_two), main = "Histogram of Residuals", xlab = "Residuals", breaks = 14)
+residual_histogram
+
+qqnorm(residuals(model_three), main = "QQ Plot for Linear Model Residuals")
+qqline(residuals(model_three), col = "red")
+```
+
+

@@ -1,0 +1,168 @@
+---
+title: "Voting Difficulty by Political Party"
+subtitle: "Datasci 203 Spring 2024 Lab 1"
+author: "Section 11 Team LightningRidge: Tazrian Ahmed, Deva Empranthiri, Trevor Lang, and Louis Wu"
+date: "`r Sys.Date()`"
+output: 
+  bookdown::pdf_document2: 
+    toc: true
+    number_sections: true
+---
+
+```{=tex}
+\newpage
+\setcounter{page}{1}
+```
+
+```{r load packages and set options, include=FALSE}
+library(tidyverse) 
+library(magrittr)
+library(knitr)
+library(patchwork)
+library(moments)
+
+theme_set(theme_bw())
+
+options(tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo=FALSE, message=FALSE)
+```
+
+```{r load data}
+anes <- read.csv("data/anes_pilot_2022_csv_20221214.csv") %>%
+  mutate(
+    party = factor(
+      case_when(
+        pid1d == 1 ~ "Democrat", 
+        pid1d == 2 ~ "Republican",
+        pid1r == 1 ~ "Democrat",
+        pid1r == 2 ~ "Republican",
+        pidlean == 1 ~ "Republican",
+        pidlean == 2 ~ "Democrat",
+        TRUE ~ "Other"
+      ),
+      levels = c(
+        "Democrat",
+        "Republican",
+        "Other"
+      )
+    ),
+    difficulty = factor(
+      case_when(
+        votehard == 1 ~ "Not difficult at all",
+        votehard == 2 ~ "A little difficult",
+        votehard == 3 ~ "Moderately difficult",
+        votehard == 4 ~ "Very difficult",
+        votehard == 5 ~ "Extremely difficult",
+        TRUE ~ "Not applicable"
+      ),
+      levels = c(
+        "Not difficult at all",
+        "A little difficult",
+        "Moderately difficult",
+        "Very difficult",
+        "Extremely difficult",
+        "Not applicable"
+      )
+    )
+  )
+
+anes_filtered <- anes %>%
+  filter(
+    party != "Other",
+    difficulty != "Not applicable"
+  ) %>%
+  select(party, difficulty)
+```
+
+# Importance and Context
+
+In the United States, the last decades have seen national elections decided by increasingly narrow margins. In both 2000 and 2016, the winner of the presidential election lost the popular vote - an event that hadn't occurred previously since 1888. Responding to this environment, political campaigns have increasingly emphasized voter turnout as a way to winning elections. The question of how to motivate voters to show up at the polls has become crucial to political strategists, as well as commentators and researchers.
+
+This analysis contributes to the discussion of voting difficulty. As a first step, this analysis aims to address the following research question:
+
+\begin{quote}
+  \textit{Do Democratic voters or Republican voters experience more difficulty voting?}
+\end{quote}
+
+The answer to this question could provide guidance to future political campaigns hoping to increase voter turnout. It could also provide useful background for governments that are interested civic participation. A better understanding of the factors that lead to voter difficulty may also help those hoping to counteract that difficulty.
+
+# Data and Methodology
+
+Our analysis leverages data from the 2022 American National Election Studies (ANES). This is a cross-sectional survey conducted to provide data about voting and public opinion after the 2022 midterm elections in the United States. There are a total of 1,585 cases in the file. 
+
+Unlike the ANES, we do not correct for survey weights in accordance with stratified sampling methods, which limits our ability to draw conclusions about the US population as a whole.
+
+To operational-ize the concept of voters, we remove those who responded "Definitely did not vote" or "Not completely sure" to the question, "In the election held on November 8, did you definitely vote in person on election day, vote in person before Nov 8, vote by mail, did you definitely not vote, or are you not completely sure whether you voted in that election?"
+
+To operational-ize the concept of Democrats and Republicans, we use the question, "Generally speaking, do you usually think of yourself as a Democrat, a Republican, an independent, or what?" which was randomly split into either listing the Democrat choice first or the Republican choice first. For those who responded "Independent" or "Something else," we use the follow-up question, "Do you think of yourself as closer to the Republican Party or to the Democratic Party?" to determine the party affiliation and remove those who responded "Neither." 
+
+As an alternative to the party identification questions in the survey, we considered using the vote that the respondent cast to identify their party preference. However, this method would introduce complications in case the respondent voted for one party in the House and the other in the Senate.
+
+To measure difficulty voting, we use responses to the question, "How difficult was it for you to vote?" By dropping the respondents who did not vote, we potentially lose those who had such a difficult time voting that they did not cast a ballot. As we report in Table \@ref(tab:summary-table), the difference in the voting turnout between Democrats and Republicans is 2.9 percentage points. We considered instead using responses to the question, "How difficult was it for you to register to vote?" but ultimately decided to stay with the question that most appropriately measures our variable of concern.
+
+```{r summary-table}
+anes %>%
+  group_by(party, difficulty) %>%
+  summarize(count = n()) %>%
+  group_by(party) %>%
+  mutate(proportion_of_party = count / sum(count, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(
+    voted = case_when(
+      difficulty == "Not applicable" ~ "Did Not Vote",
+      TRUE ~ "Voted"
+    )
+  ) %>%
+  group_by(party, voted) %>%
+  summarize(proportion_of_party = sum(proportion_of_party, na.rm = TRUE)) %>%
+  pivot_wider(names_from = voted, values_from = c(proportion_of_party)) %>%
+  kable(
+    digits = 3,
+    caption = "Proportion of respondents that voted",
+    booktabs = TRUE
+  )
+```
+
+As a result of these operational-ization techniques, we remove a total of 537 records, leaving 1,048 in our final dataset. The breakdown by political affiliation is 565 Democrats and 483 Republican.
+
+As shown in Figure \@ref(fig:plots), a greater percentage of Democrat respondents had any difficulty voting than Republican respondents did. Formally, we can set up a Wilcoxon rank-sum test.
+
+```{r plots, warning=FALSE, fig.cap="Reported difficulty in voting by Democrats vs Republicans"}
+anes_filtered %>%
+  group_by(party, difficulty) %>%
+  summarize(count = n()) %>%
+  group_by(party) %>%
+  mutate(proportion_of_party = count / sum(count, na.rm = TRUE)) %>%
+  ggplot(aes(x = party, y = proportion_of_party, fill = difficulty)) +
+  geom_bar(stat = "sum") +
+  labs(
+    title = "Reported Difficulty in Voting by Democrats vs Republicans",
+    x = "political party",
+    y = "percent of voters"
+  )
+```
+
+**Wilcoxon Rank-Sum Null Hypothesis**: *Democratic voters and Republican voters experience the same difficulty voting.*
+
+In order for a Wilcoxon rank-sum test to produce reliable inference, the outcome variable must be measured on an ordinal scale. This is true once the "Not applicable" answers are removed, since the answer choices are ordered using the Likert scale.
+
+Additionally, the data must be drawn from an i.i.d. sample. The ANES uses a panel of individuals from the YouGov platform. There is a possibility that this introduces dependencies. For example, participants may tell friends or family members about YouGov, resulting in a cluster of individuals that give similar responses. Nevertheless, YouGov claims to have millions of users, which suggests that links between individuals should be rare.
+
+# Results
+
+```{r, echo=TRUE}
+wilcox.test(
+  as.numeric(anes_filtered$difficulty) ~ anes_filtered$party,
+  alternative = "two.sided"
+)
+```
+
+The test yields evidence that Democrats or Republicans face different difficulties voting. Therefore, we reject the null hypothesis. From a practical perspective, this result appears potentially important. In the group of Democrats, 82.5 percent of voters reported no difficulty at all voting. This compares to 91.9 percent in Republicans, a difference of 9.4 percentage points. In a highly competitive, polarized electorate, even a small reduction in voting difficulty may swing an election.
+
+Several limitations of our test affect the conclusions that may be drawn from it. As mentioned above, we could not account for respondents who faced so much difficulty that they did not even vote. Additionally, the ANES data is not nationally representative, suggesting that our results may not generalize to the US population.
+
+# Discussion
+
+This study found evidence that Democrats faced more difficulty in voting than Republicans. The effect appears practically significant, with the percentage of Democrat voters who faced any difficulty voting estimated to be nearly twice as high as the percentage of Republican voters who faced any difficulty voting. In a polarized and closely divided electorate, the difference may be enough to swing some close elections.
+
+Our results may be of key interest to political campaigns, who have the goal of driving their supporters to the polls. While this study addresses voting difficulty in general, future studies may focus specifically on the barriers faced by voters, such as difficulty registering to vote, long wait times at polling places, concerns about identity validation, complications with operating voting machines, figuring out the polling location, the distance and the cost of transportation from residence to polling place, work schedules, weather, or difficulty obtaining or mailing back an absentee ballot. We are especially interested in manipulating the prevalence of some barriers in an experiment, providing a way to measure the causal pathway from voting difficulty to voting turnout. 
